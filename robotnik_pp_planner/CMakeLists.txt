@@ -19,6 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib
 )
 
+#set(PCL_DIR "/usr/lib/x86_64-linux-gnu/cmake/pcl")
 find_package(PCL REQUIRED)
 
 catkin_python_setup()

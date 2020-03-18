@@ -3,8 +3,8 @@
  * \version 1.0
  * \date    2014
  *
- * \brief purepursuit_planner class motorsDev
- * Component to manage the Agvs controller
+ * \brief purepursuit_planner class
+ * Component to follow trajectories defined as waypoint sequences
  * (C) 2014 Robotnik Automation, SLL
 */
 #include <string.h>
@@ -92,19 +92,9 @@ enum{
 
 using namespace std;
 
-//! Data structure for a Magnet
-typedef struct MagnetStruct{
-    //! Id of the magnet
-    int iID;
-    //! X position
-    double dX;
-    //! Y position
-    double dY;
-}MagnetStruct;
-
 //! Data structure for a Waypoint
 typedef struct Waypoint{
-    //! Id of the magnet
+    //! Id of the waypoint
     int iID;
     //! X position
     double dX;
@@ -116,21 +106,17 @@ typedef struct Waypoint{
     double dSpeed;
 }Waypoint;
 
-//! class to manage the waypoints and magnets of the current path
+//! class to manage the waypoints of the current path
 class Path{
 	public:
 	//! Current waypoint
 	int iCurrentWaypoint;
-	//! Current magnet
-	int iCurrentMagnet;
 
 	private:
 	//! Mutex to control the access
 	pthread_mutex_t mutexPath;
 	//! Vector to store all the Waypoints
 	vector <Waypoint> vPoints;
-	//! Vector to store all the magnets
-	vector <MagnetStruct> vMagnets;
 	//! Flag to control the optimization
 	bool bOptimized;
 
@@ -138,7 +124,7 @@ class Path{
 
 	//! public constructor
 	Path(){
-		iCurrentWaypoint = iCurrentMagnet = -1;
+		iCurrentWaypoint = -1;
 		pthread_mutex_init(&mutexPath, NULL);//Initialization for WaypointRoutes' mutex
 		bOptimized = false;
 	}
@@ -209,38 +195,12 @@ class Path{
 		return ret;
 	}
 	
-	//! Adds a new magnet
-	ReturnValue AddMagnet(MagnetStruct magnet){
-		pthread_mutex_lock(&mutexPath);
-			if(iCurrentMagnet < 0){ //First point
-				iCurrentMagnet = 0;
-			}
-			vMagnets.push_back(magnet);
-		pthread_mutex_unlock(&mutexPath);
-
-		return OK;
-	}
-
-	//! Adds a vector of magnets
-	ReturnValue AddMagnet(vector <MagnetStruct> po){
-		pthread_mutex_lock(&mutexPath);
-			if(iCurrentMagnet < 0){ //First point
-				iCurrentMagnet = 0;
-			}
-			for(int i = 0; i < po.size(); i++){
-				vMagnets.push_back(po[i]);
-			}
-		pthread_mutex_unlock(&mutexPath);
-	}
-
-	//! Clears the waypoints and magnets
+	//! Clears the waypoints 
 	void Clear(){
 		pthread_mutex_lock(&mutexPath);
-			iCurrentWaypoint = -1;
-			iCurrentMagnet = -1;
+			iCurrentWaypoint = -1;		
 			bOptimized = false;
-			vPoints.clear();
-			vMagnets.clear();
+			vPoints.clear();			
 		pthread_mutex_unlock(&mutexPath);
 	}
 	
@@ -338,112 +298,9 @@ class Path{
 		return vPoints.size();
 	}
 
-	//! Returns the next magnet
-	ReturnValue GetNextMagnet(MagnetStruct *mg){
-		ReturnValue ret = ERROR;
-		pthread_mutex_lock(&mutexPath);
-
-			if( (iCurrentMagnet >= 0) && (iCurrentMagnet < (vMagnets.size() - 1)) ){
-				*mg = vMagnets[iCurrentMagnet + 1];
-				ret = OK;
-			}
-
-		pthread_mutex_unlock(&mutexPath);
-
-
-		return ret;
-	}
-
-	//! Returns the back magnet
-	ReturnValue BackMagnet(MagnetStruct * mg){
-		ReturnValue ret = ERROR;
-
-		 pthread_mutex_lock(&mutexPath);
-			if( vMagnets.size() > 0){
-				*mg = vMagnets.back();
-				ret = OK;
-			}
-		pthread_mutex_unlock(&mutexPath);
-
-		return ret;
-	}
-
-	//! Gets the current magnet
-	ReturnValue GetCurrentMagnet( MagnetStruct * mg ){
-		ReturnValue ret = ERROR;
-
-		pthread_mutex_lock(&mutexPath);
-			if( (iCurrentMagnet >= 0) && (iCurrentMagnet < vMagnets.size()) ){
-				*mg = vMagnets[iCurrentMagnet];
-				ret = OK;
-			}
-		pthread_mutex_unlock(&mutexPath);
-
-		return ret;
-	}
-
-	//! Gets the previous magnet
-	ReturnValue GetPreviousMagnet( MagnetStruct * mg ){
-		ReturnValue ret = ERROR;
-
-		pthread_mutex_lock(&mutexPath);
-			if( (iCurrentMagnet > 0) && (iCurrentMagnet <= vMagnets.size()) ){
-				*mg = vMagnets[iCurrentMagnet-1];
-				ret = OK;
-			}
-		pthread_mutex_unlock(&mutexPath);
-
-		return ret;
-	}
-
-	//! Gets the current MagnetStruct in the path
-	int GetCurrentMagnetIndex(){
-		return iCurrentMagnet;
-	}
-
-	//!	Sets the current magnet to index
-	ReturnValue SetCurrentMagnet(int index){
-		ReturnValue ret = ERROR;
-
-		if(index < (vMagnets.size() - 1)){
-			pthread_mutex_lock(&mutexPath);
-				iCurrentMagnet = index;
-			pthread_mutex_unlock(&mutexPath);
-			ret = OK;
-		}
-		return ret;
-	}
-
-	//! Increase magnet's number
-	void NextMagnet(){
-		pthread_mutex_lock(&mutexPath);
-			iCurrentMagnet++;
-		pthread_mutex_unlock(&mutexPath);
-	}
-
-	 //! Gets the last magnet
-	ReturnValue GetLastMagnet( MagnetStruct * mg ){
-		ReturnValue ret = ERROR;
-
-		pthread_mutex_lock(&mutexPath);
-			if( (iCurrentMagnet > 0) && (iCurrentMagnet <= vMagnets.size() ) ){
-				*mg = vMagnets[iCurrentMagnet - 1];
-				ret = OK;
-			}
-		pthread_mutex_unlock(&mutexPath);
-
-		return ret;
-	}
-
-	  //! Returns the number of magnets
-	int NumOfMagnets(){
-		return vMagnets.size();
-	}
-
 	//! Overloaded operator +=
 	Path &operator+=(const Path &a){
 		AddWaypoint(a.vPoints);
-		AddMagnet(a.vMagnets);
 		return *this;
 	}
 
@@ -1243,7 +1100,7 @@ public:
                 }
 
 			}//else
-			//	ROS_INFO("%s::StandbyState: Enabled(%d), Cancel(%d), Obstacle(%d)",sComponentName.c_str(), bEnabled, bCancel, bObstacle);
+			//ROS_INFO("%s::StandbyState: Enabled(%d), Cancel(%d), Obstacle(%d)",sComponentName.c_str(), bEnabled, bCancel, bObstacle);
 				
 		}
 	}
@@ -1713,6 +1570,9 @@ public:
 		//if(ui_position_source == MAP_SOURCE){		
 		try{
 			listener.lookupTransform(global_frame_id_, base_frame_id_, ros::Time(0), transform);
+			//ros::Time now = ros::Time::now();
+			//listener.waitForTransform(global_frame_id_, base_frame_id_, now, ros::Duration(0.25));
+						
 			geometry_msgs::TransformStamped msg;
 			tf::transformStampedTFToMsg(transform, msg);
 			pose2d_robot.x = msg.transform.translation.x;
@@ -1992,8 +1852,8 @@ public:
 					aux = qPath.front();
 					aux.GetWaypoint(0, &wFirst);
 					aux.BackWaypoint(&wLast);
-					ROS_INFO("%s::MergePath: Adding new %d points from (%.2lf, %.2lf) to (%.2lf, %.2lf) and %d magnets", sComponentName.c_str(), aux.NumOfWaypoints() ,wFirst.dX, wFirst.dY, wLast.dX, wLast.dY, aux.NumOfMagnets());
-					ROS_INFO("%s::MergePath: Current number of points = %d and magnets = %d", sComponentName.c_str(), pathCurrent.NumOfWaypoints() , pathCurrent.NumOfMagnets());
+					ROS_INFO("%s::MergePath: Adding new %d points from (%.2lf, %.2lf) to (%.2lf, %.2lf)", sComponentName.c_str(), aux.NumOfWaypoints() ,wFirst.dX, wFirst.dY, wLast.dX, wLast.dY);
+					ROS_INFO("%s::MergePath: Current number of points = %d", sComponentName.c_str(), pathCurrent.NumOfWaypoints());
 					
 					// Adds the first path in the queue to the current path
 					pathCurrent+=qPath.front();
@@ -2006,7 +1866,7 @@ public:
 						
 					}
 					
-					ROS_INFO("%s::MergePath: New number of points = %d and magnets = %d", sComponentName.c_str(), pathCurrent.NumOfWaypoints() , pathCurrent.NumOfMagnets());
+					ROS_INFO("%s::MergePath: New number of points = %d", sComponentName.c_str(), pathCurrent.NumOfWaypoints());
 					// Pops the extracted path
 					qPath.pop();
 					
