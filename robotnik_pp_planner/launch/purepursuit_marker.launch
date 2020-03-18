@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="global_frame" default="map"/>
+  <arg name="global_frame" default="robot_odom"/>
   <arg name="planner" default="robotnik_pp_planner"/>
   <!-- start purepursuit node -->
   <node pkg="robotnik_pp_planner" type="path_marker.py" name="path_marker" output="screen">
