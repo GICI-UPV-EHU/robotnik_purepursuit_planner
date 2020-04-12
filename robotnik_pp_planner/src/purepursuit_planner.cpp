@@ -715,6 +715,11 @@ private:
 	bool obstacle_avoidance_;
 	//! flag ok if transform between frames is OK
 	bool transform_ok;
+	double first_deceleration_distance_;
+	double first_deceleration_maxspeed_;
+	double second_deceleration_distance_;
+	double second_deceleration_maxspeed_;
+	
 	
 public:
 	/*!	\fn summit_controller::purepursuit_planner()
@@ -845,7 +850,12 @@ public:
         private_node_handle_.param("path_turn_radius_distance", path_turn_radius_distance_, AGVS_TURN_RADIUS);
         private_node_handle_.param("static_lookahead", static_lookahead_, true);
         private_node_handle_.param("obstacle_avoidance", obstacle_avoidance_, true);
-		
+        
+        private_node_handle_.param("first_deceleration_distance", first_deceleration_distance_, AGVS_FIRST_DECELERATION_DISTANCE);
+        private_node_handle_.param("first_deceleration_maxspeed", first_deceleration_maxspeed_, AGVS_FIRST_DECELERATION_MAXSPEED);
+        private_node_handle_.param("second_deceleration_distance", second_deceleration_distance_, AGVS_SECOND_DECELERATION_DISTANCE);
+        private_node_handle_.param("second_deceleration_maxspeed", second_deceleration_maxspeed_, AGVS_SECOND_DECELERATION_MAXSPEED);
+        
 		//private_node_handle_.param<std::string>("name_sc_enable_frot_laser_", name_sc_enable_front_laser_, "/s3000_laser_front/enable_disable");
 		//private_node_handl_.param<std::string>("name_sc_enable_back_laser", name_sc_enable_back_laser_, "/s3000_laser_back/enable_disable"	);
 
@@ -1443,17 +1453,17 @@ public:
 		}
 			
 		
-		if(dAuxDist <= AGVS_SECOND_DECELERATION_DISTANCE)	{
-			if( (dAuxSpeed < 0.0) && (dAuxSpeed < -AGVS_SECOND_DECELERATION_MAXSPEED) )
-				dAuxSpeed = -AGVS_SECOND_DECELERATION_MAXSPEED;
-			else if( (dAuxSpeed > 0.0) && (dAuxSpeed > AGVS_SECOND_DECELERATION_MAXSPEED) )
-				dAuxSpeed = AGVS_SECOND_DECELERATION_MAXSPEED;
+		if(dAuxDist <= second_deceleration_distance_)	{
+			if( (dAuxSpeed < 0.0) && (dAuxSpeed < -second_deceleration_maxspeed_) )
+				dAuxSpeed = -second_deceleration_maxspeed_;
+			else if( (dAuxSpeed > 0.0) && (dAuxSpeed > second_deceleration_maxspeed_) )
+				dAuxSpeed = second_deceleration_maxspeed_;
 
-		}else if(dAuxDist <= AGVS_FIRST_DECELERATION_DISTANCE) {
-			if( (dAuxSpeed < 0.0) && (dAuxSpeed < -AGVS_FIRST_DECELERATION_MAXSPEED))
-				dAuxSpeed = -AGVS_FIRST_DECELERATION_MAXSPEED;
-			else if( (dAuxSpeed > 0.0) && (dAuxSpeed > AGVS_FIRST_DECELERATION_MAXSPEED) )
-				dAuxSpeed = AGVS_FIRST_DECELERATION_MAXSPEED;
+		}else if(dAuxDist <= first_deceleration_distance_) {
+			if( (dAuxSpeed < 0.0) && (dAuxSpeed < -first_deceleration_maxspeed_))
+				dAuxSpeed = -first_deceleration_maxspeed_;
+			else if( (dAuxSpeed > 0.0) && (dAuxSpeed > first_deceleration_maxspeed_) )
+				dAuxSpeed = first_deceleration_maxspeed_;
 		}
 		
 		if(command_type == COMMAND_ACKERMANN){
@@ -1471,7 +1481,7 @@ public:
 			
 			if(ddist2 <= ERROR_GOAL_DISTANCE){
 				if(ddist2 > last_dist_to_goal){ //and fabs(ddist2 - last_dist_to_goal) > ERROR_GOAL_DISTANCE){
-					ROS_ERROR("%s::PurePursuit: dist to goal = %.3lf m. Last = %.3lf. CANCELLING GOAL", sComponentName.c_str(), ddist2, last_dist_to_goal);
+					ROS_ERROR("%s::PurePursuit: dist to goal = %.4lf m. Last = %.4lf. CANCELLING GOAL", sComponentName.c_str(), ddist2, last_dist_to_goal);
 					SetRobotSpeed(0.0, 0.0);
 					pathCurrent.Clear();
 					return -1;
@@ -1482,7 +1492,7 @@ public:
 				if (ddist2 <= goal_tolerance_) {
 					SetRobotSpeed(0.0, 0.0);
 					
-					ROS_INFO("%s::PurePursuit: target position reached (%lf, %lf, %lf) at %.3lf m from the target. Ending current path", sComponentName.c_str(),
+					ROS_INFO("%s::PurePursuit: target position reached (%lf, %lf, %lf) at %.4lf m from the target. Ending current path", sComponentName.c_str(),
 					 current_position.x, current_position.x, current_position.theta*180.0/Pi, ddist2);
 					
 					pathCurrent.Clear();
