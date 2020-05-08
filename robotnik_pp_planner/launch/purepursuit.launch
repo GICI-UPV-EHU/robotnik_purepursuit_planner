@@ -11,7 +11,7 @@
   <!-- frame used for reference in the obstacle detection -->
   <arg name="front_obstacle_frame" default="base_footprint"/>
   <arg name="rear_obstacle_frame" default="base_footprint"/>
-  <arg name="cmd_vel" default="cmd_vel"/>
+  <arg name="cmd_vel" default="summit_robot_control/command"/>
 
   <!-- Uncomment to use the collision detection based on laserscan and pointclouds -->
   <node if="$(arg run_front_laser_to_pcl)" pkg="hector_laserscan_to_pointcloud" type="laserscan_to_pointcloud_node" name="scan_to_ptcld_front" respawn="true">
